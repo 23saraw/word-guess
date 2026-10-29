@@ -1,0 +1,13 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Referee a five-letter word-guessing game, mark by mark"
+summary: "Guess Referee hands an agent a game (a hidden word and a list of guesses) and asks it to mark every guess HIT, NEAR or MISS, mark invalid and unplayed guesses, and say whether the game was solved and in how many attempts. A deterministic verifier replays the game under pinned rules and checks every mark."
+highlights:
+  - "Repeated letters are scored by a pinned two-pass rule, so LLAMA never marks two Ls against a word with one"
+  - "Invalid guesses use no attempt, and anything after the solve or the 6th attempt is unplayed"
+  - "Two tools tell the truth about the wrong thing, to see whether the agent read the rules"
+  - "Runs offline on bundled games: the same verdict every time"
+steps:
+  - "Ask the chat to referee one of the bundled games, such as plant.json"
+  - "The agent reads the game and checks which guesses are allowed"
+  - "It marks each guess itself and submits the result"
+  - "The verifier replays the game and names any guess it got wrong"

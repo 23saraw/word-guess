@@ -1,0 +1,46 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: word-guess
+name: Guess Referee
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: []
+
+# One entry per contract.Tool; its input and output classes are contract.TOOLS's.
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  load_game:
+    description: "The answer key: a bundled game, the allowed-words list, and each guess's feedback under the rules"
+  read_game:
+    description: Read a bundled game file, giving its hidden word, its max attempts and its guesses exactly as written
+  check_words:
+    description: Tell for each word whether it is 5 ASCII letters and, lowercased, in the allowed-words list
+  letters_in_word:
+    description: List the distinct letters of a game's hidden word, sorted, each once however often it occurs
+  check_shape:
+    description: Tell for each word whether it is exactly 5 ASCII letters, without reading the allowed-words list
+
+# One entry per contract.Task; its input and output classes are contract.TASKS's.
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  score-game:
+    description: Referee a five-letter word-guessing game, giving each guess's status and marks, whether it was solved and in how many attempts
+    runner: agent
+    tools: [read_game, check_words, letters_in_word, check_shape]
+    reference: load_game
+    instructions: |-
+      You referee one game of a five-letter word-guessing game. Plan: (1) read_game with the task input copied exactly; (2) check_words once, with every guess exactly as written; (3) apply the rules below yourself; (4) submit.
+      Rules.
+      1. Case. Guesses are case-insensitive: lowercase a guess before comparing it with the hidden word. Each entry's guess is still copied exactly as written.
+      2. Invalid. A guess is invalid when it is not exactly 5 ASCII letters or is not in the allowed-words list; check_words's allowed says exactly this. An invalid guess has no pattern (null) and uses no attempt.
+      3. Unplayed. Once a scored guess equals the hidden word, or 6 guesses are scored, the game is over: every later guess is unplayed, with no pattern (null), even one that would be invalid.
+      4. Scored. Every other guess is scored and uses one attempt. Its pattern is 5 marks, left to right: HIT is the right letter in the right position; NEAR is a letter in the hidden word but not at this position, with an unused copy remaining; MISS is otherwise. They are given in two passes. Pass 1: each position whose letter equals the hidden word's letter there is HIT, and uses up that letter of the hidden word. Pass 2: left to right over the other positions, a letter is NEAR if the hidden word still has an unused copy of it among its non-HIT positions (and uses that copy up), else MISS. So a letter is never marked HIT or NEAR more times than the hidden word holds it, and HIT copies are counted first: GEESE against SHORE is MISS MISS MISS NEAR HIT.
+      5. Result. solved is true when a scored guess equals the hidden word. attempts is the number of scored guesses.
+      Submit game (as given), feedback (one entry per guess in the game's order: guess, status scored/invalid/unplayed, pattern), solved and attempts.
